@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life RPG</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0d0f14;color:#e8eaf0}
+.app{font-family:inherit;color:inherit}
+.screen{padding:16px;display:none}.screen.active{display:block}
+.topbar{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:0.5px solid #2a2f3e;background:#141720}
+.topbar-title{font-size:15px;font-weight:500;flex:1}
+.tb-btn{background:none;border:0.5px solid #2a2f3e;border-radius:6px;cursor:pointer;color:#9ca3af;font-size:12px;padding:4px 10px;display:flex;align-items:center;gap:4px}
+.tb-btn:hover{background:#1a1e2a;color:#e8eaf0}
+.hero-card{background:#141720;border:0.5px solid #2a2f3e;border-radius:14px;padding:18px 20px;margin-bottom:12px}
+.hc-top{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.hc-avatar{width:64px;height:64px;border-radius:50%;background:#1a1e2a;border:2px solid #d4a017;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;cursor:pointer;position:relative}
+.hc-avatar:hover::after{content:'✏️';position:absolute;bottom:-2px;right:-2px;font-size:14px;background:#141720;border-radius:50%;padding:1px}
+.hc-info{flex:1;min-width:0}
+.hc-name-wrap{display:flex;align-items:center;gap:6px}
+.hc-name{font-size:18px;font-weight:500}
+.hc-edit-btn{background:none;border:none;cursor:pointer;color:#6b7280;font-size:14px;padding:2px;opacity:0;transition:opacity .15s}
+.hc-name-wrap:hover .hc-edit-btn{opacity:1}
+.hc-class{font-size:12px;color:#9ca3af;margin-top:2px}
+.hc-lvl{background:#d4a01722;color:#d4a017;font-size:12px;font-weight:500;padding:5px 14px;border-radius:20px;white-space:nowrap}
+.xp-label{display:flex;justify-content:space-between;font-size:12px;color:#9ca3af;margin-bottom:4px;margin-top:8px}
+.bar{height:7px;background:#1a1e2a;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{background:#1a1e2a;border-radius:10px;padding:10px 12px;text-align:center}
+.stat-v{font-size:19px;font-weight:500}.stat-l{font-size:11px;color:#9ca3af;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+.sec-lbl{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;margin-top:4px}
+.sec-lbl-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;margin-top:4px}
+.sec-lbl-row .sec-lbl{margin:0}
+.reset-countdown{font-size:11px;color:#9ca3af;display:flex;align-items:center;gap:4px}
+.zones-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.zone-card{background:#141720;border:0.5px solid #2a2f3e;border-radius:12px;padding:13px 15px;cursor:pointer;transition:border-color .15s,background .15s}
+.zone-card:hover{background:#1a1e2a;border-color:#3d4460}
+.zc-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.zc-icon{font-size:18px}.zc-name{font-size:13px;font-weight:500;flex:1}
+.zc-lvl{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
+.zc-desc{font-size:11px;color:#9ca3af;margin-bottom:7px;line-height:1.4;min-height:14px}
+.zc-meta{display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;margin-top:3px}
+.quests-card{background:#141720;border:0.5px solid #2a2f3e;border-radius:12px;overflow:hidden;margin-bottom:12px}
+.quests-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:0.5px solid #2a2f3e}
+.quests-header-left{display:flex;align-items:center;gap:8px}
+.quest-day-label{font-size:13px;font-weight:500}
+.quest-day-sub{font-size:11px;color:#9ca3af;margin-top:1px}
+.quest-row{display:flex;align-items:center;gap:9px;padding:9px 16px;border-bottom:0.5px solid #2a2f3e;cursor:pointer;transition:background .12s}
+.quest-row:last-child{border-bottom:none}
+.quest-row:hover{background:#1a1e2a}
+.quest-row.done{opacity:.7}
+.qcheck{width:20px;height:20px;border:1.5px solid #3d4460;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.quest-row.done .qcheck{background:#d4a017;border-color:#d4a017}
+.quest-row.done .qtext{color:#6b7280;text-decoration:line-through}
+.qtext{font-size:13px;flex:1}
+.qzone-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.qxp{font-size:11px;white-space:nowrap;font-weight:500}
+.streak-bar{display:flex;align-items:center;gap:6px;padding:10px 16px;border-top:0.5px solid #2a2f3e}
+.streak-day{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+.streak-pip{width:100%;height:6px;border-radius:3px;background:#1a1e2a}
+.streak-pip.done{background:#f5c542}
+.streak-pip.today{background:#d4a017;box-shadow:0 0 6px #d4a01780}
+.streak-label{font-size:10px;color:#9ca3af}
+.pool-screen-wrap{background:#141720;border:0.5px solid #2a2f3e;border-radius:14px;overflow:hidden;margin-bottom:12px}
+.pool-section-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:0.5px solid #2a2f3e}
+.pool-section-title{font-size:13px;font-weight:500}
+.pool-count{font-size:11px;color:#9ca3af}
+.pool-item{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid #2a2f3e}
+.pool-item:last-child{border-bottom:none}
+.pool-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pool-item-text{flex:1;font-size:13px}
+.pool-item-xp{font-size:11px;color:#9ca3af;white-space:nowrap}
+.pool-item-badge{font-size:10px;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.pool-item-del{background:none;border:none;cursor:pointer;color:#6b7280;font-size:15px;padding:2px 4px;border-radius:4px;line-height:1;opacity:0;transition:opacity .15s;display:flex;align-items:center}
+.pool-item:hover .pool-item-del{opacity:1}
+.pool-item-del:hover{color:#f87171}
+.add-quest-form{background:#1a1e2a;border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.aqf-title{font-size:13px;font-weight:500;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.aqf-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.aqf-inp{background:#141720;border:0.5px solid #3d4460;border-radius:8px;padding:8px 12px;font-size:13px;color:#e8eaf0;font-family:inherit;outline:none;flex:1;min-width:160px}
+.aqf-inp:focus{border-color:#6b7280}
+.aqf-inp::placeholder{color:#6b7280}
+.aqf-select{background:#141720;border:0.5px solid #3d4460;border-radius:8px;padding:8px 10px;font-size:13px;color:#e8eaf0;font-family:inherit;outline:none;cursor:pointer}
+.xp-stepper{display:flex;align-items:center;background:#141720;border:0.5px solid #3d4460;border-radius:8px;overflow:hidden}
+.xp-step-btn{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;padding:6px 10px;line-height:1;transition:background .12s}
+.xp-step-btn:hover{background:#1a1e2a;color:#e8eaf0}
+.xp-step-val{font-size:13px;font-weight:500;padding:0 8px;min-width:36px;text-align:center}
+.aqf-btn{background:#d4a017;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:500;color:#111;cursor:pointer;white-space:nowrap}
+.aqf-btn:hover{opacity:.88}
+.pool-edit-toggle{background:none;border:0.5px solid #2a2f3e;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#9ca3af}
+.pool-edit-toggle:hover{background:#1a1e2a}
+.pool-edit-toggle.on{border-color:#d4a017;color:#d4a017}
+.zone-hero{background:#141720;border:0.5px solid #2a2f3e;border-radius:14px;padding:18px 20px;margin-bottom:12px}
+.zh-top{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.goal-block{border:0.5px solid #2a2f3e;border-radius:12px;overflow:hidden;margin-bottom:10px;background:#141720}
+.goal-hd{display:flex;align-items:center;gap:8px;padding:11px 14px;user-select:none}
+.goal-ico{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.goal-name-inp{flex:1;background:none;border:none;outline:none;font-size:14px;font-weight:500;color:#e8eaf0;font-family:inherit;padding:0;min-width:0}
+.goal-name-inp::placeholder{color:#6b7280}
+.goal-pct{font-size:12px;color:#9ca3af;white-space:nowrap}
+.hd-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.icon-btn{background:none;border:none;cursor:pointer;color:#6b7280;font-size:16px;padding:3px 4px;border-radius:5px;line-height:1;display:flex;align-items:center}
+.icon-btn:hover{background:#1a1e2a;color:#e8eaf0}
+.icon-btn.danger:hover{color:#f87171}
+.chev{font-size:14px;color:#6b7280;transition:transform .2s;cursor:pointer;padding:3px 4px;display:flex;align-items:center}
+.chev.open{transform:rotate(180deg)}
+.goal-body{border-top:0.5px solid #2a2f3e}
+.sg-row{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 50px;border-bottom:0.5px solid #2a2f3e}
+.sg-row:last-child{border-bottom:none}
+.sg-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sg-name-inp{flex:1;background:none;border:none;outline:none;font-size:13px;font-weight:500;color:#e8eaf0;font-family:inherit;padding:0;min-width:0}
+.sg-pct{font-size:11px;color:#9ca3af;white-space:nowrap}
+.tasks-wrap{background:#1a1e2a;border-top:0.5px solid #2a2f3e}
+.task-row{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 66px;border-bottom:0.5px solid #2a2f3e}
+.task-row:last-child{border-bottom:none}
+.tcheck{width:17px;height:17px;border:1.5px solid #3d4460;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;cursor:pointer}
+.task-row.done .tcheck{border-color:var(--zc,#888);background:var(--zc,#888)}
+.task-name-inp{flex:1;background:none;border:none;outline:none;font-size:12px;color:#e8eaf0;font-family:inherit;padding:0;min-width:0}
+.task-row.done .task-name-inp{color:#6b7280;text-decoration:line-through}
+.txp{font-size:11px;white-space:nowrap;opacity:.75}
+.task-row.done .txp{opacity:.35}
+.add-row{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 66px}
+.add-inp{flex:1;background:none;border:none;outline:none;font-size:12px;color:#e8eaf0;font-family:inherit}
+.add-inp::placeholder{color:#6b7280}
+.add-sub-row{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 50px;border-top:0.5px solid #2a2f3e}
+.add-sub-inp{flex:1;background:none;border:none;outline:none;font-size:13px;color:#e8eaf0;font-family:inherit}
+.add-sub-inp::placeholder{color:#6b7280}
+.add-goal-btn{display:flex;align-items:center;gap:6px;background:none;border:0.5px dashed #3d4460;border-radius:10px;padding:10px 14px;cursor:pointer;color:#9ca3af;font-size:13px;width:100%;margin-bottom:10px}
+.add-goal-btn:hover{background:#1a1e2a;color:#e8eaf0}
+.emoji-picker{display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:#141720;border:0.5px solid #2a2f3e;border-radius:10px;margin-bottom:10px}
+.ep-btn{background:none;border:none;cursor:pointer;font-size:20px;padding:4px 6px;border-radius:6px}
+.ep-btn:hover{background:#1a1e2a}
+.toast-bar{font-size:13px;font-weight:500;padding:9px 16px;border-radius:10px;text-align:center;opacity:0;transition:opacity .3s;margin-top:10px;pointer-events:none;color:#111}
+.toast-bar.show{opacity:1}
+.save-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#9ca3af}
+.save-dot{width:6px;height:6px;border-radius:50%;background:#4caf7d}
+.inline-inp{background:#1a1e2a;border:0.5px solid #3d4460;border-radius:6px;padding:5px 9px;font-size:14px;color:#e8eaf0;font-family:inherit;outline:none}
+.inline-ok{background:none;border:0.5px solid #3d4460;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;color:#9ca3af}
+.inline-edit-wrap{display:flex;align-items:center;gap:6px;margin-top:2px}
+.confirm-overlay{background:rgba(0,0,0,0.5);border-radius:12px;padding:20px;margin-bottom:12px;display:none}
+.confirm-overlay.show{display:block}
+.confirm-box{background:#141720;border:0.5px solid #2a2f3e;border-radius:12px;padding:18px 20px;text-align:center}
+.confirm-title{font-size:15px;font-weight:500;margin-bottom:5px}
+.confirm-sub{font-size:13px;color:#9ca3af;margin-bottom:14px}
+.confirm-btns{display:flex;gap:8px;justify-content:center}
+.btn-danger{background:none;border:0.5px solid #f87171;color:#f87171;border-radius:8px;padding:7px 18px;cursor:pointer;font-size:13px}
+.btn-cancel{background:none;border:0.5px solid #3d4460;color:#9ca3af;border-radius:8px;padding:7px 18px;cursor:pointer;font-size:13px}
+.new-day-banner{background:linear-gradient(135deg,#d4a01722,#7c6ef522);border:0.5px solid #d4a01744;border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.ndb-icon{font-size:28px}.ndb-text{flex:1}
+.ndb-title{font-size:14px;font-weight:500}
+.ndb-sub{font-size:12px;color:#9ca3af;margin-top:2px}
+.ndb-close{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:18px;padding:2px}
+.bottom-nav{display:flex;border-top:0.5px solid #2a2f3e;background:#141720;position:sticky;bottom:0}
+.bn-btn{flex:1;background:none;border:none;cursor:pointer;padding:10px 8px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:#9ca3af;font-size:10px;transition:color .15s}
+.bn-btn.active{color:#d4a017}
+.ico{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.ico svg{display:block}
+.zone-icon-btn{background:none;border:none;cursor:pointer;font-size:36px;line-height:1;padding:0;position:relative;border-radius:10px;transition:opacity .15s}
+.zone-icon-btn:hover{opacity:.75}
+.zone-icon-btn::after{content:'✏️';position:absolute;bottom:-4px;right:-4px;font-size:13px;background:#141720;border-radius:50%;padding:1px}
+.zone-name-inp{background:none;border:none;outline:none;font-size:18px;font-weight:500;color:#e8eaf0;font-family:inherit;padding:0;width:100%;border-bottom:1px solid transparent;transition:border-color .15s}
+.zone-name-inp:focus{border-bottom-color:#3d4460}
+.zone-desc-inp{background:none;border:none;outline:none;font-size:13px;color:#9ca3af;font-family:inherit;padding:0;width:100%;margin-top:2px;resize:none;border-bottom:1px solid transparent;transition:border-color .15s;line-height:1.4}
+.zone-desc-inp:focus{border-bottom-color:#3d4460}
+.zone-color-row{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.zone-color-lbl{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em}
+.color-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s,border-color .12s;flex-shrink:0}
+.color-swatch:hover{transform:scale(1.15)}
+.color-swatch.active{border-color:#e8eaf0}
+.color-custom-wrap{position:relative;display:flex;align-items:center}
+.color-custom-inp{width:22px;height:22px;border-radius:50%;border:2px solid #3d4460;cursor:pointer;padding:0;background:none;overflow:hidden}
+.color-custom-inp::-webkit-color-swatch-wrapper{padding:0}
+.color-custom-inp::-webkit-color-swatch{border:none;border-radius:50%}
+.zone-emoji-picker{display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:#1a1e2a;border:0.5px solid #2a2f3e;border-radius:10px;margin-top:8px}
+.zone-ep-btn{background:none;border:none;cursor:pointer;font-size:22px;padding:4px 6px;border-radius:6px}
+.zone-ep-btn:hover{background:#2a2f3e}
+/* LEVEL UP */
+.lvlup-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .3s ease}
+.lvlup-overlay.show{pointer-events:auto;opacity:1}
+.lvlup-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .4s ease}
+.lvlup-overlay.show .lvlup-backdrop{background:rgba(0,0,0,0.72)}
+.lvlup-card{position:relative;z-index:1;background:#141720;border-radius:20px;padding:36px 32px 28px;text-align:center;width:300px;border:1px solid #2a2f3e;transform:scale(.7) translateY(40px);opacity:0;transition:transform .45s cubic-bezier(.34,1.56,.64,1),opacity .3s ease}
+.lvlup-overlay.show .lvlup-card{transform:scale(1) translateY(0);opacity:1}
+.lvlup-rays{position:absolute;inset:-40px;pointer-events:none;overflow:visible}
+.lvlup-icon{font-size:52px;margin-bottom:8px;display:block;animation:lvlup-bounce .6s ease .45s both}
+@keyframes lvlup-bounce{0%{transform:scale(.5)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.lvlup-badge{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:12px}
+.lvlup-title{font-size:22px;font-weight:600;margin-bottom:4px;color:#e8eaf0}
+.lvlup-sub{font-size:13px;color:#9ca3af;margin-bottom:6px;line-height:1.5}
+.lvlup-lvl{font-size:56px;font-weight:700;background:linear-gradient(135deg,#d4a017,#f5c542,#d4a017);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin:8px 0 4px;animation:lvlup-pop .5s ease .6s both}
+@keyframes lvlup-pop{0%{transform:scale(0) rotate(-10deg)}70%{transform:scale(1.15) rotate(2deg)}100%{transform:scale(1) rotate(0)}}
+.lvlup-lvl-lbl{font-size:12px;color:#9ca3af;margin-bottom:20px}
+.lvlup-xp-new{font-size:13px;color:#4caf7d;margin-bottom:20px}
+.lvlup-btn{background:#d4a017;border:none;border-radius:10px;padding:10px 28px;font-size:14px;font-weight:600;color:#111;cursor:pointer;width:100%;transition:opacity .15s,transform .1s}
+.lvlup-btn:hover{opacity:.88}
+.lvlup-particle{position:fixed;pointer-events:none;z-index:10000;border-radius:50%;animation:lvlup-fall 1.4s ease-out forwards}
+@keyframes lvlup-fall{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(200px) scale(0.3)}}
+/* ONBOARDING */
+.onboard-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:24px}
+.onboard-logo{font-size:52px;margin-bottom:16px}
+.onboard-title{font-size:22px;font-weight:700;margin-bottom:6px}
+.onboard-sub{font-size:14px;color:#9ca3af;margin-bottom:28px;line-height:1.5}
+.onboard-form{width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px}
+.onboard-inp{background:#1a1e2a;border:0.5px solid #3d4460;border-radius:10px;padding:12px 14px;font-size:15px;color:#e8eaf0;font-family:inherit;outline:none;width:100%}
+.onboard-inp:focus{border-color:#d4a017}
+.onboard-inp::placeholder{color:#6b7280}
+.onboard-btn{background:#d4a017;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:600;color:#111;cursor:pointer;width:100%;margin-top:4px}
+.onboard-btn:hover{opacity:.88}
+.onboard-hint{font-size:11px;color:#6b7280;margin-top:6px}
+/* EMPTY STATES */
+.empty-state{text-align:center;padding:32px 16px;color:#6b7280}
+.empty-state-icon{font-size:32px;margin-bottom:10px}
+.empty-state-text{font-size:14px;font-weight:500;margin-bottom:4px;color:#9ca3af}
+.empty-state-sub{font-size:12px;line-height:1.5}
+/* PROFILE */
+.profile-hero{background:#141720;border:0.5px solid #2a2f3e;border-radius:14px;padding:20px;margin-bottom:12px;text-align:center}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:#1a1e2a;border:2px solid #d4a017;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 10px}
+.profile-name{font-size:18px;font-weight:600;margin-bottom:2px}
+.profile-class{font-size:12px;color:#9ca3af;margin-bottom:10px}
+.profile-lvl-badge{display:inline-flex;align-items:center;gap:6px;background:#d4a01720;color:#d4a017;font-size:13px;font-weight:600;padding:5px 16px;border-radius:20px;margin-bottom:14px}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.radar-wrap{background:#141720;border:0.5px solid #2a2f3e;border-radius:14px;padding:16px;margin-bottom:12px}
+.radar-title{font-size:13px;font-weight:500;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.radar-subtitle{font-size:11px;color:#6b7280;margin-bottom:12px}
+.radar-svg{display:block;margin:0 auto}
+.streak-history-wrap{background:#141720;border:0.5px solid #2a2f3e;border-radius:14px;overflow:hidden;margin-bottom:12px}
+.sh-header{padding:12px 16px;border-bottom:0.5px solid #2a2f3e;display:flex;align-items:center;justify-content:space-between}
+.sh-title{font-size:13px;font-weight:500}
+.sh-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:12px 16px}
+.sh-cell{aspect-ratio:1;border-radius:3px;background:#1a1e2a;transition:transform .1s}
+.sh-cell:hover{transform:scale(1.2)}
+.sh-cell.active{background:#d4a017}
+.sh-cell.dim{background:#d4a01740}
+.sh-day-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:0 16px 8px;text-align:center}
+.sh-day-lbl{font-size:9px;color:#6b7280}
+.sh-stats{display:flex;border-top:0.5px solid #2a2f3e}
+.sh-stat{flex:1;padding:10px 12px;text-align:center;border-right:0.5px solid #2a2f3e}
+.sh-stat:last-child{border-right:none}
+.sh-stat-v{font-size:16px;font-weight:600;color:#d4a017}
+.sh-stat-l{font-size:10px;color:#9ca3af;margin-top:1px}
+.ach-wrap{background:#141720;border:0.5px solid #2a2f3e;border-radius:14px;overflow:hidden;margin-bottom:12px}
+.ach-header{padding:12px 16px;border-bottom:0.5px solid #2a2f3e;display:flex;align-items:center;justify-content:space-between}
+.ach-title{font-size:13px;font-weight:500}
+.ach-count{font-size:11px;color:#9ca3af}
+.ach-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0}
+.ach-item{padding:12px 14px;border-bottom:0.5px solid #2a2f3e;border-right:0.5px solid #2a2f3e;display:flex;align-items:center;gap:10px}
+.ach-item:nth-child(2n){border-right:none}
+.ach-item:nth-last-child(-n+2){border-bottom:none}
+.ach-icon{font-size:24px;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ach-icon.locked{filter:grayscale(1);opacity:.35}
+.ach-name{font-size:12px;font-weight:500;line-height:1.3}
+.ach-desc{font-size:10px;color:#9ca3af;margin-top:2px;line-height:1.3}
+.ach-item.locked-item .ach-name{color:#6b7280}
+.zone-bars-wrap{background:#141720;border:0.5px solid #2a2f3e;border-radius:14px;overflow:hidden;margin-bottom:12px}
+.zb-header{padding:12px 16px;border-bottom:0.5px solid #2a2f3e}
+.zb-title{font-size:13px;font-weight:500}
+.zb-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid #2a2f3e}
+.zb-row:last-child{border-bottom:none}
+.zb-icon{font-size:16px;width:24px;text-align:center;flex-shrink:0}
+.zb-name{font-size:12px;width:60px;flex-shrink:0;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zb-bar{flex:1;height:6px;background:#1a1e2a;border-radius:3px;overflow:hidden}
+.zb-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.34,1.2,.64,1)}
+.zb-lvl{font-size:11px;color:#9ca3af;white-space:nowrap;width:36px;text-align:right}
+/* ADD ZONE BTN */
+.add-zone-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:none;border:0.5px dashed #3d4460;border-radius:12px;padding:16px;cursor:pointer;color:#6b7280;font-size:13px;width:100%;margin-bottom:12px;transition:all .15s}
+.add-zone-btn:hover{background:#1a1e2a;color:#e8eaf0;border-color:#6b7280}
+/* VERSION */
+.version-tag{font-size:10px;color:#3d4460;text-align:center;padding:8px 0 4px;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<div class="screen active" id="screen-home">
+  <div id="home-content"></div>
+  <div id="confirm-wrap"></div>
+</div>
+
+<div class="screen" id="screen-quests">
+  <div class="topbar">
+    <button class="tb-btn" onclick="showScreen('home')" style="border:none;padding:4px 0">
+      <span class="ico" id="ico-back-quests"></span> Назад
+    </button>
+    <span class="topbar-title">Пул квестов</span>
+    <span class="save-badge" style="opacity:0.4"><span class="save-dot"></span>Сохранено</span>
+  </div>
+  <div style="padding:16px" id="quests-pool-content"></div>
+</div>
+
+<div class="screen" id="screen-zone">
+  <div class="topbar">
+    <button class="tb-btn" onclick="showScreen('home')" style="border:none;padding:4px 0">
+      <span class="ico" id="ico-back-zone"></span> Все зоны
+    </button>
+    <span class="topbar-title" id="zone-topbar-title"></span>
+    <span class="save-badge" style="opacity:0.4"><span class="save-dot"></span>Сохранено</span>
+  </div>
+  <div style="padding:16px" id="zone-content"></div>
+</div>
+
+<div class="screen" id="screen-profile">
+  <div class="topbar">
+    <span class="topbar-title">Профиль</span>
+    <span class="save-badge" style="opacity:0.4"><span class="save-dot"></span>Сохранено</span>
+  </div>
+  <div style="padding:16px" id="profile-content"></div>
+</div>
+
+<div class="bottom-nav" id="bottom-nav" style="display:none">
+  <button class="bn-btn active" id="bn-home" onclick="showScreen('home')">
+    <span class="ico" id="ico-bn-home"></span>Главная
+  </button>
+  <button class="bn-btn" id="bn-quests" onclick="showScreen('quests')">
+    <span class="ico" id="ico-bn-quests"></span>Квесты
+  </button>
+  <button class="bn-btn" id="bn-profile" onclick="showScreen('profile')">
+    <span class="ico" id="ico-bn-profile"></span>Профиль
+  </button>
+</div>
+
+<div class="lvlup-overlay" id="lvlup-overlay">
+  <div class="lvlup-backdrop" onclick="closeLevelUp()"></div>
+  <div class="lvlup-card">
+    <svg class="lvlup-rays" id="lvlup-rays" viewBox="-40 -40 80 80" xmlns="http://www.w3.org/2000/svg"></svg>
+    <span class="lvlup-icon" id="lvlup-icon">⚔️</span>
+    <div class="lvlup-badge" id="lvlup-badge">Уровень получен!</div>
+    <div class="lvlup-title" id="lvlup-title"></div>
+    <div class="lvlup-sub" id="lvlup-sub"></div>
+    <div class="lvlup-lvl" id="lvlup-lvl">2</div>
+    <div class="lvlup-lvl-lbl">УРОВЕНЬ</div>
+    <div class="lvlup-xp-new" id="lvlup-xp-new"></div>
+    <button class="lvlup-btn" onclick="closeLevelUp()">Продолжать! 🚀</button>
+  </div>
+</div>
+
+</div>
+<script>
+// ── VERSION ────────────────────────────────────────────────────
+const APP_VERSION = '1.0.0';
+
+const SK='life_rpg_v5'; // новый ключ чтобы не конфликтовать со старыми данными
+const EMOJIS=['🎯','📈','💡','🚀','🔥','📋','💰','🏆','⚡','🛠','🎮','📺','💪','🥗','🏥','🏠','🧠','❤️','✈️','💍','🌟','📚','🎨','🧩','🔑','🎵','🌱'];
+const DAYS_RU=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const MONTHS_RU=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+const SVGS={
+  'arrow-left':`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M5 12l6 6M5 12l6-6"/></svg>`,
+  'home':`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12H3l9-9 9 9h-2"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6"/></svg>`,
+  'list-check':`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5l1.5 1.5L7 5"/><path d="M3.5 11.5l1.5 1.5 2-2"/><path d="M3.5 17.5l1.5 1.5 2-2"/><line x1="11" y1="6" x2="20" y2="6"/><line x1="11" y1="12" x2="20" y2="12"/><line x1="11" y1="18" x2="20" y2="18"/></svg>`,
+  'user':`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
+  'check':`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  'check-sm':`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  'chevron-down':`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`,
+  'pencil':`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.121 2.121 0 0 0-3-3L5 17v3"/><line x1="13.5" y1="6.5" x2="17.5" y2="10.5"/></svg>`,
+  'plus':`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  'plus-circle':`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+  'circle-plus':`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+  'trash':`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  'trash-sm':`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  'x':`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  'clock':`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>`,
+  'trophy':`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4a2 2 0 0 1-2-2V5h4"/><path d="M18 9h2a2 2 0 0 0 2-2V5h-4"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M6 3h12v10a6 6 0 0 1-12 0V3z"/></svg>`,
+  'sparkle':`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z"/></svg>`,
+};
+function ico(name){return `<span class="ico">${SVGS[name]||''}</span>`;}
+function initIcons(){
+  const map={'ico-back-quests':'arrow-left','ico-back-zone':'arrow-left','ico-bn-home':'home','ico-bn-quests':'list-check','ico-bn-profile':'user'};
+  for(const[id,name] of Object.entries(map)){const el=document.getElementById(id);if(el)el.innerHTML=SVGS[name]||'';}
+}
+
+// ── ЧИСТЫЙ ДЕФОЛТ (без примеров) ──────────────────────────────
+function freshData(){
+  return {
+    char:{name:'',cls:'',lvl:1,xp:0,xpMax:500,streak:0,avatar:'⚔️'},
+    streakHistory:[],lastActiveDate:null,quests:[],questDate:null,showNewDayBanner:false,
+    customQuestPool:[],
+    zones:[]
+  };
+}
+
+let DATA,curZoneId=null,nextId=100,toastTO=null,saveTO=null,midnightTO=null,tickTO=null,editingCharName=false,poolEditMode=false,newQuestXP=20;
+
+// ── HELPERS ────────────────────────────────────────────────────
+function zoneTaskProgress(z){
+  let total=0,done=0;
+  z.goals.forEach(g=>g.subs.forEach(s=>s.tasks.forEach(t=>{total++;if(t.done)done++;})));
+  return{total,done,pct:total>0?done/total:0};
+}
+function dateKey(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function todayKey(){return dateKey();}
+function prevDayKey(){const d=new Date();d.setDate(d.getDate()-1);return dateKey(d);}
+function msUntilMidnight(){const n=new Date(),m=new Date(n);m.setHours(24,0,0,0);return m-n;}
+function fmtCD(ms){const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000),s=Math.floor((ms%60000)/1000);return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+function uid(){return 'x'+(nextId++);}
+function gZ(id){return DATA.zones.find(z=>z.id===id);}
+function allTasks(){let a=[];DATA.zones.forEach(z=>z.goals.forEach(g=>g.subs.forEach(s=>s.tasks.forEach(t=>a.push(t)))));return a;}
+function calcGPct(g){let t=0,d=0;g.subs.forEach(s=>s.tasks.forEach(tk=>{t++;if(tk.done)d++;}));return t?Math.round(d/t*100):0;}
+function calcSPct(s){const t=s.tasks.length,d=s.tasks.filter(t=>t.done).length;return t?Math.round(d/t*100):0;}
+function pBar(pct,color,h){h=h||7;return`<div class="bar" style="height:${h}px"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>`;}
+function toast(msg,color){const el=document.getElementById('toast-el');if(!el)return;el.textContent=msg;el.style.background=color||'#e8eaf0';el.style.color=color?'#111':'#0d0f14';el.classList.add('show');clearTimeout(toastTO);toastTO=setTimeout(()=>el.classList.remove('show'),2200);}
+function questRing(done,total){const pct=total?done/total:0,r=12,cx=16,cy=16,circ=2*Math.PI*r,dash=pct*circ;return`<svg width="32" height="32" viewBox="0 0 32 32"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1a1e2a" stroke-width="3"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#d4a017" stroke-width="3" stroke-dasharray="${dash} ${circ}" stroke-linecap="round" style="transform:rotate(-90deg);transform-origin:center"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#e8eaf0" font-weight="500">${done}/${total}</text></svg>`;}
+function getLast7(){const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({key:dateKey(d),d});}return days;}
+
+// ── STORAGE ────────────────────────────────────────────────────
+function loadData(){
+  try{const r=localStorage.getItem(SK);if(r){DATA=JSON.parse(r);if(!DATA.customQuestPool)DATA.customQuestPool=[];return;}}catch(e){}
+  DATA=freshData();
+}
+function scheduleSave(){clearTimeout(saveTO);saveTO=setTimeout(()=>{try{localStorage.setItem(SK,JSON.stringify(DATA));flashSaved();}catch(e){}},400);}
+function flashSaved(){document.querySelectorAll('.save-badge').forEach(el=>{el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0.4',1400);});}
+
+// ── ONBOARDING ─────────────────────────────────────────────────
+function isOnboarded(){return DATA.char.name.trim().length>0;}
+
+function renderOnboarding(){
+  document.getElementById('bottom-nav').style.display='none';
+  document.getElementById('home-content').innerHTML=`
+  <div class="onboard-screen">
+    <div class="onboard-logo">⚔️</div>
+    <div class="onboard-title">Life RPG</div>
+    <div class="onboard-sub">Превращай реальную жизнь<br>в игру с целями и XP</div>
+    <div class="onboard-form">
+      <input class="onboard-inp" id="ob-name" placeholder="Твоё имя" maxlength="30" autocomplete="off">
+      <input class="onboard-inp" id="ob-class" placeholder="Кто ты? (напр. Предприниматель)" maxlength="50" autocomplete="off">
+      <button class="onboard-btn" onclick="finishOnboarding()">Начать игру →</button>
+      <div class="onboard-hint">Можно изменить позже</div>
+    </div>
+    <div class="version-tag">Life RPG v${APP_VERSION}</div>
+  </div>`;
+  // enter key support
+  setTimeout(()=>{
+    const ni=document.getElementById('ob-name');
+    const ci=document.getElementById('ob-class');
+    if(ni)ni.addEventListener('keydown',e=>{if(e.key==='Enter'&&ci)ci.focus();});
+    if(ci)ci.addEventListener('keydown',e=>{if(e.key==='Enter')finishOnboarding();});
+    if(ni)ni.focus();
+  },50);
+}
+
+function finishOnboarding(){
+  const name=(document.getElementById('ob-name').value||'').trim();
+  const cls=(document.getElementById('ob-class').value||'').trim();
+  if(!name){
+    const el=document.getElementById('ob-name');
+    el.style.borderColor='#f87171';el.focus();
+    setTimeout(()=>el.style.borderColor='',1200);return;
+  }
+  DATA.char.name=name;
+  DATA.char.cls=cls||'Искатель приключений';
+  scheduleSave();
+  checkDailyReset();
+  document.getElementById('bottom-nav').style.display='flex';
+  renderHome();
+}
+
+// ── DAILY RESET ────────────────────────────────────────────────
+function generateQuests(){
+  const pool=DATA.customQuestPool||[];
+  if(!pool.length)return[];
+  const shuffled=[...pool];
+  for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+  return shuffled.slice(0,5).map((q,i)=>({id:'q'+Date.now()+i,text:q.text,xp:q.xp,zoneId:q.zoneId,done:false}));
+}
+function checkDailyReset(){
+  const today=todayKey();if(DATA.questDate===today)return;
+  const wasYesterday=DATA.lastActiveDate===prevDayKey();
+  const hadQ=DATA.quests&&DATA.quests.length>0;
+  const allDone=hadQ&&DATA.quests.every(q=>q.done);
+  if(DATA.lastActiveDate){
+    if(wasYesterday){if(allDone){DATA.char.streak=(DATA.char.streak||0)+1;if(!DATA.streakHistory.includes(DATA.lastActiveDate))DATA.streakHistory.push(DATA.lastActiveDate);}else DATA.char.streak=0;}
+    else if(DATA.lastActiveDate!==today)DATA.char.streak=0;
+  }
+  DATA.quests=generateQuests();DATA.questDate=today;DATA.showNewDayBanner=!!DATA.lastActiveDate;DATA.lastActiveDate=today;scheduleSave();
+}
+function scheduleMidnight(){clearTimeout(midnightTO);midnightTO=setTimeout(()=>{checkDailyReset();renderHome();scheduleMidnight();},msUntilMidnight()+1000);}
+function startTicker(){clearTimeout(tickTO);const el=document.getElementById('countdown-val');if(el)el.textContent=fmtCD(msUntilMidnight());tickTO=setTimeout(startTicker,1000);}
+
+// ── LEVEL UP ───────────────────────────────────────────────────
+let lvlupQueue=[],lvlupShowing=false;
+function spawnParticles(color){
+  const colors=[color||'#d4a017','#f5c542','#ffffff','#a78bfa','#4caf7d'];
+  for(let i=0;i<22;i++){
+    const p=document.createElement('div');p.className='lvlup-particle';
+    const x=30+Math.random()*40,y=20+Math.random()*40;
+    p.style.cssText=`left:${x}vw;top:${y}vh;background:${colors[i%colors.length]};width:${5+Math.random()*8}px;height:${5+Math.random()*8}px;animation-duration:${1+Math.random()*.8}s;animation-delay:${Math.random()*.3}s`;
+    document.body.appendChild(p);setTimeout(()=>p.remove(),2000);
+  }
+}
+function drawRays(color){
+  const svg=document.getElementById('lvlup-rays');if(!svg)return;
+  let rays='';
+  for(let i=0;i<12;i++){const a=i*30,r=i%2===0?50:38,r2=25,rad=a*Math.PI/180;
+    rays+=`<line x1="${(Math.cos(rad)*r2).toFixed(1)}" y1="${(Math.sin(rad)*r2).toFixed(1)}" x2="${(Math.cos(rad)*r).toFixed(1)}" y2="${(Math.sin(rad)*r).toFixed(1)}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>`;
+  }
+  svg.innerHTML=rays;svg.style.transition='transform 8s linear';requestAnimationFrame(()=>svg.style.transform='rotate(360deg)');
+}
+function showLevelUp(opts){lvlupQueue.push(opts);if(!lvlupShowing)processLevelUpQueue();}
+function processLevelUpQueue(){
+  if(!lvlupQueue.length){lvlupShowing=false;return;}
+  lvlupShowing=true;const opts=lvlupQueue.shift();
+  const ov=document.getElementById('lvlup-overlay');
+  document.getElementById('lvlup-icon').textContent=opts.icon||'⭐';
+  const badge=document.getElementById('lvlup-badge');
+  badge.textContent=opts.type==='zone'?'Зона прокачана!':'Уровень получен!';
+  badge.style.background=(opts.color||'#d4a017')+'22';badge.style.color=opts.color||'#d4a017';
+  document.getElementById('lvlup-title').textContent=opts.title||'';
+  document.getElementById('lvlup-sub').textContent=opts.sub||'';
+  document.getElementById('lvlup-lvl').textContent=opts.level||'';
+  document.getElementById('lvlup-lvl').style.background=`linear-gradient(135deg,${opts.color||'#d4a017'},#fff,${opts.color||'#d4a017'})`;
+  document.getElementById('lvlup-xp-new').textContent='Новый лимит XP: '+opts.xpMax;
+  drawRays(opts.color||'#d4a017');spawnParticles(opts.color);ov.classList.add('show');
+}
+function closeLevelUp(){
+  document.getElementById('lvlup-overlay').classList.remove('show');
+  setTimeout(()=>{if(lvlupQueue.length)processLevelUpQueue();else{lvlupShowing=false;renderHome();}},350);
+}
+function checkCharLevelUp(){
+  const c=DATA.char;
+  while(c.xp>=c.xpMax){c.xp-=c.xpMax;c.lvl++;c.xpMax=Math.round(c.xpMax*1.4+200);
+    showLevelUp({icon:c.avatar||'⚔️',title:c.name,sub:'«'+c.cls+'»',level:c.lvl,xpMax:c.xpMax,color:'#d4a017',type:'char'});}
+}
+function checkZoneLevelUp(z){
+  while(z.xp>=z.xpMax){z.xp-=z.xpMax;z.lvl++;z.xpMax=Math.round(z.xpMax*1.35+150);
+    showLevelUp({icon:z.icon,title:z.name,sub:'Зона прокачана до уровня '+z.lvl,level:z.lvl,xpMax:z.xpMax,color:z.color,type:'zone'});}
+}
+
+// ── ACHIEVEMENTS ───────────────────────────────────────────────
+const ACHIEVEMENTS=[
+  {id:'first_task',icon:'🎯',name:'Первый шаг',desc:'Выполни первую задачу',check:d=>allTasks().some(t=>t.done)},
+  {id:'streak3',icon:'🔥',name:'Огонь',desc:'Серия 3 дня подряд',check:d=>d.char.streak>=3},
+  {id:'streak7',icon:'🌟',name:'Неделя силы',desc:'Серия 7 дней подряд',check:d=>d.char.streak>=7},
+  {id:'streak30',icon:'🏆',name:'Месяц героя',desc:'Серия 30 дней подряд',check:d=>d.char.streak>=30},
+  {id:'lvl5',icon:'⚔️',name:'Боец',desc:'Персонаж достиг ур. 5',check:d=>d.char.lvl>=5},
+  {id:'lvl10',icon:'👑',name:'Двузначный',desc:'Персонаж достиг ур. 10',check:d=>d.char.lvl>=10},
+  {id:'zone_lvl5',icon:'🌐',name:'Зона прокачана',desc:'Любая зона ур. 5+',check:d=>d.zones.some(z=>z.lvl>=5)},
+  {id:'all_quests',icon:'✅',name:'Чистый лист',desc:'Все квесты за день',check:d=>(d.quests||[]).length>0&&(d.quests||[]).every(q=>q.done)},
+  {id:'tasks10',icon:'📋',name:'Начало',desc:'10 задач выполнено',check:d=>{let n=0;d.zones.forEach(z=>z.goals.forEach(g=>g.subs.forEach(s=>s.tasks.forEach(t=>{if(t.done)n++;}))));return n>=10;}},
+  {id:'zones3',icon:'🗺️',name:'Первопроходец',desc:'Создай 3 зоны жизни',check:d=>d.zones.length>=3},
+];
+
+// ── RADAR ──────────────────────────────────────────────────────
+function buildRadar(zones){
+  if(!zones.length)return`<div style="text-align:center;color:#6b7280;font-size:13px;padding:20px 0">Добавь зоны жизни — радар появится здесь</div>`;
+  const W=260,H=260,cx=130,cy=130,R=96,n=zones.length;
+  const zoneData=zones.map(z=>{const{pct}=zoneTaskProgress(z);return{...z,pct};});
+  const pts=zoneData.map((_,i)=>{const a=(i/n)*Math.PI*2-Math.PI/2;return{ax:cx+Math.cos(a)*R,ay:cy+Math.sin(a)*R,lx:cx+Math.cos(a)*(R+22),ly:cy+Math.sin(a)*(R+22),a};});
+  let rings='';
+  [0.25,0.5,0.75,1].forEach(r=>{const pp=pts.map(p=>`${(cx+(p.ax-cx)*r).toFixed(1)},${(cy+(p.ay-cy)*r).toFixed(1)}`).join(' ');rings+=`<polygon points="${pp}" fill="none" stroke="#2a2f3e" stroke-width="0.5"/>`;});
+  const refA=-Math.PI/2;
+  ['25%','50%','75%','100%'].forEach((lbl,i)=>{const r=(i+1)/4*R,lx=cx+Math.cos(refA)*r-2,ly=cy+Math.sin(refA)*r-3;rings+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="7" fill="#3d4460" text-anchor="end">${lbl}</text>`;});
+  const spokes=pts.map(p=>`<line x1="${cx}" y1="${cy}" x2="${p.ax.toFixed(1)}" y2="${p.ay.toFixed(1)}" stroke="#2a2f3e" stroke-width="0.5"/>`).join('');
+  let petals='';
+  zoneData.forEach((z,i)=>{
+    const a0=(i/n)*Math.PI*2-Math.PI/2,a1=((i+1)/n)*Math.PI*2-Math.PI/2,r=z.pct*R;
+    if(r<1)return;
+    let arcPts=`${cx},${cy}`;
+    for(let s=0;s<=12;s++){const a=a0+(a1-a0)*(s/12);arcPts+=` ${(cx+Math.cos(a)*r).toFixed(1)},${(cy+Math.sin(a)*r).toFixed(1)}`;}
+    petals+=`<polygon points="${arcPts}" fill="${z.color}" fill-opacity="0.22" stroke="${z.color}" stroke-width="0.3" stroke-opacity="0.4"/>`;
+  });
+  const dataPts=zoneData.map((z,i)=>{const a=(i/n)*Math.PI*2-Math.PI/2,r=Math.max(z.pct*R,1);return`${(cx+Math.cos(a)*r).toFixed(1)},${(cy+Math.sin(a)*r).toFixed(1)}`;}).join(' ');
+  const outline=`<polygon points="${dataPts}" fill="none" stroke="#d4a017" stroke-width="1.5" stroke-linejoin="round" stroke-opacity="0.9"/>`;
+  const dots=zoneData.map((z,i)=>{const a=(i/n)*Math.PI*2-Math.PI/2,r=z.pct*R;if(r<2)return'';return`<circle cx="${(cx+Math.cos(a)*r).toFixed(1)}" cy="${(cy+Math.sin(a)*r).toFixed(1)}" r="3.5" fill="${z.color}" stroke="#141720" stroke-width="1"/>`;}).join('');
+  const labels=zoneData.map((z,i)=>{
+    const p=pts[i],ta=Math.abs(p.lx-cx)<8?'middle':(p.lx<cx?'end':'start');
+    const pctTxt=Math.round(z.pct*100)+'%';
+    const pctX=cx+Math.cos(p.a)*(R+36),pctY=cy+Math.sin(p.a)*(R+36);
+    const ta2=Math.abs(pctX-cx)<8?'middle':(pctX<cx?'end':'start');
+    return`<text x="${p.lx.toFixed(1)}" y="${p.ly.toFixed(1)}" text-anchor="${ta}" dominant-baseline="central" font-size="16">${z.icon}</text>`+
+      (z.pct>0?`<text x="${pctX.toFixed(1)}" y="${pctY.toFixed(1)}" text-anchor="${ta2}" dominant-baseline="central" font-size="8.5" fill="${z.color}" font-weight="500">${pctTxt}</text>`:'');
+  }).join('');
+  return`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="radar-svg">${rings}${spokes}${petals}${outline}${dots}${labels}</svg>`;
+}
+
+// ── STREAK CALENDAR ────────────────────────────────────────────
+function buildStreakCalendar(hist){
+  const today=new Date(),todK=dateKey(),days=[];
+  for(let i=69;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);days.push(d);}
+  return days.map(d=>{const k=dateKey(d),isToday=k===todK,done=hist.includes(k);return`<div class="sh-cell${done?' active':(isToday?' dim':'')}" title="${k}"></div>`;}).join('');
+}
+
+// ── PROFILE ────────────────────────────────────────────────────
+function renderProfile(){
+  const el=document.getElementById('profile-content');
+  const c=DATA.char,pct=Math.round(c.xp/c.xpMax*100);
+  const hist=DATA.streakHistory||[];
+  let totalTasks=0;DATA.zones.forEach(z=>z.goals.forEach(g=>g.subs.forEach(s=>s.tasks.forEach(t=>{if(t.done)totalTasks++;}))));
+  const achUnlocked=ACHIEVEMENTS.filter(a=>a.check(DATA));
+  const achLocked=ACHIEVEMENTS.filter(a=>!a.check(DATA));
+
+  let html=`
+  <div class="profile-hero">
+    <div class="profile-avatar">${c.avatar||'⚔️'}</div>
+    <div class="profile-name">${c.name}</div>
+    <div class="profile-class">${c.cls}</div>
+    <div class="profile-lvl-badge">⚔️ Уровень ${c.lvl}</div>
+    <div class="xp-label"><span>XP: ${c.xp} / ${c.xpMax}</span><span>${pct}%</span></div>
+    <div class="bar" style="height:8px"><div class="bar-fill" style="width:${pct}%;background:#d4a017"></div></div>
+    <div class="profile-stats" style="margin-top:12px">
+      <div class="stat"><div class="stat-v" style="color:#d4a017">${c.streak}</div><div class="stat-l">🔥 Серия</div></div>
+      <div class="stat"><div class="stat-v">${totalTasks}</div><div class="stat-l">Задач</div></div>
+      <div class="stat"><div class="stat-v">${achUnlocked.length}</div><div class="stat-l">Значков</div></div>
+    </div>
+  </div>
+
+  <div class="radar-wrap">
+    <div class="radar-title">${ico('trophy')} Карта прокачки зон</div>
+    <div class="radar-subtitle">% выполненных задач в каждой зоне</div>
+    ${buildRadar(DATA.zones)}
+  </div>`;
+
+  if(DATA.zones.length){
+    html+=`<div class="zone-bars-wrap"><div class="zb-header"><div class="zb-title">Прогресс по зонам</div></div>`;
+    DATA.zones.forEach(z=>{const{done,total,pct}=zoneTaskProgress(z);const pr=Math.round(pct*100);html+=`<div class="zb-row"><span class="zb-icon">${z.icon}</span><span class="zb-name" title="${z.name}">${z.name}</span><div class="zb-bar"><div class="zb-fill" style="width:${pr}%;background:${z.color}"></div></div><span style="font-size:10px;color:#6b7280;white-space:nowrap;width:28px;text-align:right">${done}/${total}</span><span class="zb-lvl" style="color:${z.color}">Ур.${z.lvl}</span></div>`;});
+    html+=`</div>`;
+  }
+
+  html+=`
+  <div class="streak-history-wrap">
+    <div class="sh-header"><span class="sh-title">История серий · 10 недель</span><span style="font-size:11px;color:#9ca3af">${hist.length} активных дней</span></div>
+    <div class="sh-day-labels">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d=>`<div class="sh-day-lbl">${d}</div>`).join('')}</div>
+    <div class="sh-grid">${buildStreakCalendar(hist)}</div>
+    <div class="sh-stats">
+      <div class="sh-stat"><div class="sh-stat-v">${c.streak}</div><div class="sh-stat-l">Текущая</div></div>
+      <div class="sh-stat"><div class="sh-stat-v">${hist.length}</div><div class="sh-stat-l">Всего дней</div></div>
+      <div class="sh-stat"><div class="sh-stat-v">${totalTasks}</div><div class="sh-stat-l">Задач done</div></div>
+    </div>
+  </div>
+
+  <div class="ach-wrap">
+    <div class="ach-header"><span class="ach-title">Достижения</span><span class="ach-count">${achUnlocked.length} / ${ACHIEVEMENTS.length}</span></div>
+    <div class="ach-grid">`;
+  [...achUnlocked,...achLocked].forEach(a=>{const locked=!achUnlocked.includes(a);html+=`<div class="ach-item${locked?' locked-item':''}"><div class="ach-icon${locked?' locked':''}" style="background:${locked?'#1a1e2a':'#d4a01718'}">${a.icon}</div><div><div class="ach-name">${a.name}${!locked?' <span style="color:#4caf7d;font-size:10px">✓</span>':''}</div><div class="ach-desc">${a.desc}</div></div></div>`;});
+  html+=`</div></div>
+  <div class="version-tag">Life RPG v${APP_VERSION}</div>
+  <div class="toast-bar" id="toast-el"></div>`;
+  el.innerHTML=html;
+}
+
+// ── SCREENS ────────────────────────────────────────────────────
+function showScreen(name,zoneId){
+  if(!isOnboarded()&&name!=='home'){return;}
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.bn-btn').forEach(b=>b.classList.remove('active'));
+  const bn=document.getElementById('bn-'+name);if(bn)bn.classList.add('active');
+  document.getElementById('bottom-nav').style.display=(name==='zone')?'none':'flex';
+  if(name==='home'){isOnboarded()?renderHome():renderOnboarding();}
+  else if(name==='quests')renderPoolScreen();
+  else if(name==='zone'){curZoneId=zoneId||curZoneId;renderZone();}
+  else if(name==='profile')renderProfile();
+}
+function goZone(id){showScreen('zone',id);}
+
+function askReset(){
+  document.getElementById('confirm-wrap').innerHTML=`<div class="confirm-overlay show"><div class="confirm-box"><div class="confirm-title">Сбросить всё?</div><div class="confirm-sub">Данные удалятся навсегда. Начнёшь с чистого листа.</div><div class="confirm-btns"><button class="btn-cancel" onclick="document.getElementById('confirm-wrap').innerHTML=''">Отмена</button><button class="btn-danger" onclick="doReset()">Сбросить</button></div></div></div>`;
+}
+function doReset(){
+  localStorage.removeItem(SK);DATA=freshData();
+  document.getElementById('confirm-wrap').innerHTML='';
+  document.getElementById('bottom-nav').style.display='none';
+  renderOnboarding();
+}
+
+// ── HOME ───────────────────────────────────────────────────────
+function renderHome(){
+  if(!isOnboarded()){renderOnboarding();return;}
+  document.getElementById('bottom-nav').style.display='flex';
+  const c=DATA.char,pct=Math.round(c.xp/c.xpMax*100);
+  let tT=0,dT=0;allTasks().forEach(t=>{tT++;if(t.done)dT++;});
+  const op=tT?Math.round(dT/tT*100):0;
+  const quests=DATA.quests||[],qd=quests.filter(q=>q.done).length,qTot=quests.length;
+  const qXpLeft=quests.filter(q=>!q.done).reduce((s,q)=>s+q.xp,0);
+  const now=new Date(),dateStr=DAYS_RU[now.getDay()]+', '+now.getDate()+' '+MONTHS_RU[now.getMonth()];
+  const last7=getLast7(),hist=DATA.streakHistory||[],todK=todayKey();
+  let streakHtml='<div class="streak-bar">';
+  last7.forEach(({key,d})=>{const isT=key===todK,isDone=hist.includes(key)||(isT&&qd===qTot&&qTot>0);streakHtml+=`<div class="streak-day"><div class="streak-pip${isDone?' done':''}${isT&&!isDone?' today':''}"></div><div class="streak-label">${DAYS_RU[d.getDay()]}</div></div>`;});
+  streakHtml+='</div>';
+
+  let nameHtml=editingCharName
+    ?`<div class="inline-edit-wrap"><input class="inline-inp" id="char-name-inp" value="${c.name}" maxlength="30" style="font-size:15px"><button class="inline-ok" onclick="saveCharName()">OK</button></div>`
+    :`<div class="hc-name-wrap"><span class="hc-name">${c.name}</span><button class="hc-edit-btn icon-btn" onclick="startEditCharName()">${ico('pencil')}</button></div>`;
+  let classHtml=editingCharName
+    ?`<input class="inline-inp" id="char-class-inp" value="${c.cls}" maxlength="50" style="font-size:12px;margin-top:4px">`
+    :`<div class="hc-class">${c.cls}</div>`;
+
+  let html='';
+  if(DATA.showNewDayBanner)html+=`<div class="new-day-banner" id="new-day-banner"><div class="ndb-icon">🌅</div><div class="ndb-text"><div class="ndb-title">Новый день — новые квесты!</div><div class="ndb-sub">Серия: 🔥 ${c.streak} дней</div></div><button class="ndb-close" onclick="dismissBanner()">✕</button></div>`;
+
+  html+=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <span style="font-size:16px;font-weight:500">Life RPG <span style="font-size:10px;color:#3d4460;font-weight:400">v${APP_VERSION}</span></span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="save-badge" style="opacity:0.4"><span class="save-dot"></span>Сохранено</span>
+      <button class="tb-btn" onclick="askReset()">Сбросить</button>
+    </div>
+  </div>
+  <div class="hero-card">
+    <div class="hc-top">
+      <div class="hc-avatar" onclick="cycleAvatar()">${c.avatar||'⚔️'}</div>
+      <div class="hc-info">${nameHtml}${classHtml}
+        <div class="xp-label"><span>XP: ${c.xp} / ${c.xpMax}</span><span>${pct}%</span></div>
+        ${pBar(pct,'#d4a017')}
+      </div>
+      <div class="hc-lvl">Ур. ${c.lvl}</div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-v">${qd}/${qTot||'—'}</div><div class="stat-l">Квестов</div></div>
+    <div class="stat"><div class="stat-v">🔥 ${c.streak}</div><div class="stat-l">Серия</div></div>
+    <div class="stat"><div class="stat-v">${op}%</div><div class="stat-l">Прогресс</div></div>
+  </div>
+  <div class="sec-lbl">Зоны жизни</div>`;
+
+  if(DATA.zones.length){
+    html+=`<div class="zones-grid">`;
+    DATA.zones.forEach(z=>{
+      const{done,total,pct:zp}=zoneTaskProgress(z),zpR=Math.round(zp*100);
+      html+=`<div class="zone-card" onclick="goZone('${z.id}')"><div class="zc-head"><span class="zc-icon">${z.icon}</span><span class="zc-name">${z.name}</span><span class="zc-lvl" style="background:${z.color}22;color:${z.color}">Ур.${z.lvl}</span></div><div class="zc-desc">${z.desc||''}</div>${pBar(zpR,z.color,5)}<div class="zc-meta"><span>${done}/${total} задач</span><span style="color:${z.color}">${zpR}%</span></div></div>`;
+    });
+    html+=`</div>`;
+  } else {
+    html+=`<div class="empty-state"><div class="empty-state-icon">🗺️</div><div class="empty-state-text">Нет зон жизни</div><div class="empty-state-sub">Создай первую зону ниже — это может быть Здоровье, Деньги, Отношения…</div></div>`;
+  }
+
+  html+=`<button class="add-zone-btn" onclick="addZone()"><span class="ico">${SVGS['plus']}</span> Добавить зону жизни</button>`;
+
+  // quests section
+  if(qTot>0||DATA.customQuestPool.length>0){
+    html+=`<div class="sec-lbl-row">
+      <span class="sec-lbl">Квесты · ${dateStr}</span>
+      <span class="reset-countdown">${ico('clock')}&nbsp;<span id="countdown-val">--:--:--</span></span>
+    </div>
+    <div class="quests-card">
+      <div class="quests-header">
+        <div class="quests-header-left">
+          ${questRing(qd,qTot)}
+          <div>
+            <div class="quest-day-label">${qd===qTot&&qTot>0?'Все выполнены! 🎉':'Выполни квесты сегодня'}</div>
+            <div class="quest-day-sub">${qd===qTot&&qTot>0?'Серия продолжается →':qTot>0?'Осталось +'+qXpLeft+' XP':'Квесты появятся завтра'}</div>
+          </div>
+        </div>
+      </div>
+      <div id="quests-list-home"></div>
+      ${streakHtml}
+    </div>`;
+  } else {
+    html+=`<div class="sec-lbl">Квесты</div>
+    <div style="background:#141720;border:0.5px solid #2a2f3e;border-radius:12px;padding:20px;text-align:center;margin-bottom:12px">
+      <div style="font-size:28px;margin-bottom:8px">⚡</div>
+      <div style="font-size:13px;color:#9ca3af">Квестов пока нет — добавь их в<br>пуле квестов (вкладка Квесты)</div>
+    </div>`;
+  }
+
+  html+=`<div class="toast-bar" id="toast-el"></div>`;
+  document.getElementById('home-content').innerHTML=html;
+  renderQuestsList();startTicker();
+
+  if(editingCharName){
+    const ni=document.getElementById('char-name-inp');
+    if(ni){ni.focus();ni.select();ni.addEventListener('keydown',e=>{if(e.key==='Enter')saveCharName();if(e.key==='Escape'){editingCharName=false;renderHome();}});}
+    const ci=document.getElementById('char-class-inp');
+    if(ci)ci.addEventListener('keydown',e=>{if(e.key==='Enter')saveCharName();});
+  }
+}
+function dismissBanner(){DATA.showNewDayBanner=false;scheduleSave();const b=document.getElementById('new-day-banner');if(b)b.remove();}
+function renderQuestsList(){
+  const el=document.getElementById('quests-list-home');if(!el)return;
+  el.innerHTML='';
+  (DATA.quests||[]).forEach(q=>{
+    const z=gZ(q.zoneId);
+    const row=document.createElement('div');row.className='quest-row'+(q.done?' done':'');
+    row.innerHTML=`<div class="qcheck">${q.done?`<span class="ico" style="color:#111">${SVGS['check']}</span>`:''}</div><div class="qzone-dot" style="background:${z?z.color:'#888'}"></div><span class="qtext">${q.text}</span><span class="qxp" style="color:${z?z.color:'#d4a017'}">+${q.xp} XP</span>`;
+    row.onclick=()=>toggleQuest(q.id);el.appendChild(row);
+  });
+}
+function toggleQuest(id){
+  const q=(DATA.quests||[]).find(q=>q.id===id);if(!q)return;
+  q.done=!q.done;
+  if(q.done){DATA.char.xp+=q.xp;checkCharLevelUp();
+    if(DATA.quests.every(q=>q.done)){if(!DATA.streakHistory.includes(todayKey()))DATA.streakHistory.push(todayKey());toast('🎉 Все квесты! Серия продолжается','#4caf7d');}
+    else toast('+'+q.xp+' XP — квест выполнен!','#d4a017');
+  }else{DATA.char.xp=Math.max(DATA.char.xp-q.xp,0);DATA.streakHistory=DATA.streakHistory.filter(k=>k!==todayKey());}
+  scheduleSave();renderHome();
+}
+const AVATARS=['⚔️','🧙','🦸','🥷','🎭','🤖','👑','🦅','🐉','🌟'];
+let avatarIdx=0;
+function cycleAvatar(){avatarIdx=(avatarIdx+1)%AVATARS.length;DATA.char.avatar=AVATARS[avatarIdx];scheduleSave();renderHome();}
+function startEditCharName(){editingCharName=true;renderHome();}
+function saveCharName(){const ni=document.getElementById('char-name-inp'),ci=document.getElementById('char-class-inp');if(ni&&ni.value.trim())DATA.char.name=ni.value.trim();if(ci&&ci.value.trim())DATA.char.cls=ci.value.trim();editingCharName=false;scheduleSave();renderHome();}
+
+// ── ADD ZONE ───────────────────────────────────────────────────
+const ZONE_COLORS=['#d4a017','#7c6ef5','#e87c8d','#4caf7d','#5bc8d0','#a78bfa','#f97316','#06b6d4','#84cc16','#ec4899'];
+const ZONE_ICONS=['🎯','💰','🚀','❤️','💪','🏠','🧠','📈','🔥','📋','🏆','⚡','🎮','📚','🎨','🌱','✈️','🦁','👑'];
+const ZONE_EMOJIS=[...ZONE_ICONS,'💡','🛠','📺','🥗','🏥','💍','🌟','🧩','🔑','🎵','🐉','🌍','⚔️'];
+
+function addZone(){
+  const color=ZONE_COLORS[DATA.zones.length%ZONE_COLORS.length];
+  const icon=ZONE_ICONS[DATA.zones.length%ZONE_ICONS.length];
+  const z={id:uid(),icon,name:'Новая зона',color,lvl:1,xp:0,xpMax:400,desc:'',goals:[]};
+  DATA.zones.push(z);scheduleSave();goZone(z.id);
+}
+
+// ── QUEST POOL ─────────────────────────────────────────────────
+function renderPoolScreen(){
+  const custom=DATA.customQuestPool||[],el=document.getElementById('quests-pool-content');
+  const todayTexts=new Set((DATA.quests||[]).map(q=>q.text));
+  const customCount=custom.length;
+
+  let zoneOptions='';
+  if(DATA.zones.length){DATA.zones.forEach(z=>{zoneOptions+=`<option value="${z.id}">${z.icon} ${z.name}</option>`;});}
+  else{zoneOptions=`<option value="">— сначала создай зону —</option>`;}
+
+  let html=`<div class="add-quest-form">
+    <div class="aqf-title"><span class="ico" style="color:#d4a017">${SVGS['plus-circle']}</span> Новый квест в пул</div>
+    <div class="aqf-row"><input class="aqf-inp" id="nq-text" placeholder="Что нужно сделать?" maxlength="80"></div>
+    <div class="aqf-row" style="align-items:center">
+      <select class="aqf-select" id="nq-zone"${!DATA.zones.length?' disabled':''}>${zoneOptions}</select>
+      <div class="xp-stepper"><button class="xp-step-btn" onclick="stepXP(-5)">−</button><span class="xp-step-val" id="nq-xp-val">${newQuestXP}</span><button class="xp-step-btn" onclick="stepXP(5)">+</button></div>
+      <button class="aqf-btn" onclick="addCustomQuest()">Добавить</button>
+    </div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:6px">Ежедневно случайно выбирается до 5 квестов из пула</div>
+  </div>`;
+
+  html+=`<div class="pool-screen-wrap"><div class="pool-section-hd"><span class="pool-section-title">Мои квесты</span><div style="display:flex;align-items:center;gap:8px"><span class="pool-count">${customCount} шт.</span>${customCount>0?`<button class="pool-edit-toggle${poolEditMode?' on':''}" onclick="toggleEditMode()">${poolEditMode?'Готово':'Редактировать'}</button>`:''}</div></div>`;
+  if(!customCount){html+=`<div class="empty-state" style="padding:24px 16px"><div class="empty-state-icon">⚡</div><div class="empty-state-text">Пул пуст</div><div class="empty-state-sub">Добавь свои ежедневные задачи — они будут случайно выбираться каждый день</div></div>`;}
+  else{custom.forEach(q=>{const z=gZ(q.zoneId);const isActive=todayTexts.has(q.text);html+=`<div class="pool-item"><div class="pool-item-dot" style="background:${z?z.color:'#888'}"></div><span class="pool-item-text">${q.text}</span><span class="pool-item-xp">+${q.xp} XP</span>${z?`<span class="pool-item-badge" style="background:${z.color}22;color:${z.color}">${z.icon} ${z.name}</span>`:''}${isActive?`<span style="font-size:10px;color:#4caf7d;white-space:nowrap">● сегодня</span>`:''}${poolEditMode?`<button class="pool-item-del" onclick="deleteCustomQuest('${q.id}')">${SVGS['trash']}</button>`:''}</div>`;});}
+  html+=`</div>
+  <div class="version-tag">Life RPG v${APP_VERSION}</div>
+  <div class="toast-bar" id="toast-el"></div>`;
+  el.innerHTML=html;
+}
+function stepXP(delta){newQuestXP=Math.max(5,Math.min(100,newQuestXP+delta));const el=document.getElementById('nq-xp-val');if(el)el.textContent=newQuestXP;}
+function addCustomQuest(){
+  if(!DATA.zones.length){toast('Сначала создай зону жизни!','#f97316');return;}
+  const textEl=document.getElementById('nq-text'),zoneEl=document.getElementById('nq-zone');if(!textEl||!zoneEl)return;
+  const text=textEl.value.trim();
+  if(!text){textEl.focus();textEl.style.borderColor='#f87171';setTimeout(()=>textEl.style.borderColor='',1200);return;}
+  DATA.customQuestPool.push({id:uid(),text,xp:newQuestXP,zoneId:zoneEl.value});
+  textEl.value='';scheduleSave();toast('Квест добавлен!','#4caf7d');
+  // regenerate today's quests if empty
+  if(!DATA.quests.length){DATA.quests=generateQuests();scheduleSave();}
+  renderPoolScreen();
+}
+function deleteCustomQuest(id){DATA.customQuestPool=DATA.customQuestPool.filter(q=>q.id!==id);scheduleSave();if(!DATA.customQuestPool.length)poolEditMode=false;renderPoolScreen();}
+function toggleEditMode(){poolEditMode=!poolEditMode;renderPoolScreen();}
+
+// ── ZONE SCREEN ────────────────────────────────────────────────
+function renderZone(){
+  const z=gZ(curZoneId);if(!z)return;
+  document.getElementById('zone-topbar-title').textContent=z.icon+'  '+z.name;
+  const{done,total,pct:zp}=zoneTaskProgress(z);
+  const zpR=Math.round(zp*100),xpPct=Math.round(z.xp/z.xpMax*100);
+  const zc=document.getElementById('zone-content');zc.style.setProperty('--zc',z.color);
+  const swatches=ZONE_COLORS.map(c=>`<div class="color-swatch${z.color===c?' active':''}" style="background:${c}" onclick="setZoneColor('${c}')"></div>`).join('');
+  zc.innerHTML=`
+  <div class="zone-hero">
+    <div class="zh-top" style="align-items:flex-start">
+      <button class="zone-icon-btn" onclick="toggleZoneEmojiPicker()">${z.icon}</button>
+      <div style="flex:1;min-width:0;padding-top:2px">
+        <input class="zone-name-inp" id="zone-name-inp" value="${z.name}" maxlength="30" placeholder="Название зоны">
+        <textarea class="zone-desc-inp" id="zone-desc-inp" maxlength="100" rows="2" placeholder="Описание или цель…">${z.desc||''}</textarea>
+        <div class="zone-color-row"><span class="zone-color-lbl">Цвет:</span>${swatches}<div class="color-custom-wrap"><input class="color-custom-inp" type="color" id="zone-color-custom" value="${z.color}"></div></div>
+      </div>
+      <div style="background:${z.color}22;color:${z.color};font-size:13px;font-weight:500;padding:6px 14px;border-radius:20px;white-space:nowrap;flex-shrink:0">Ур. ${z.lvl}</div>
+    </div>
+    <div id="zone-emoji-picker-wrap"></div>
+    <div class="xp-label" style="margin-top:12px"><span>XP зоны: ${z.xp} / ${z.xpMax}</span><span>${xpPct}%</span></div>
+    ${pBar(xpPct,z.color)}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px">
+      <div class="stat"><div class="stat-v">${z.goals.length}</div><div class="stat-l">Целей</div></div>
+      <div class="stat"><div class="stat-v">${done}/${total}</div><div class="stat-l">Задач</div></div>
+      <div class="stat"><div class="stat-v">${zpR}%</div><div class="stat-l">Прогресс</div></div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;margin-top:4px">
+    <span class="sec-lbl" style="margin:0">Дерево целей</span>
+    <button class="tb-btn" style="border-color:#f87171;color:#f87171;font-size:11px" onclick="askDeleteZone('${z.id}')">Удалить зону</button>
+  </div>
+  <div id="goals-tree"></div>
+  <div class="toast-bar" id="toast-el"></div>`;
+  document.getElementById('zone-name-inp').addEventListener('input',e=>{z.name=e.target.value;document.getElementById('zone-topbar-title').textContent=z.icon+'  '+z.name;scheduleSave();});
+  document.getElementById('zone-desc-inp').addEventListener('input',e=>{z.desc=e.target.value;scheduleSave();});
+  document.getElementById('zone-color-custom').addEventListener('input',e=>{setZoneColor(e.target.value);});
+  renderGoalsTree(z);
+}
+function askDeleteZone(id){
+  const z=gZ(id);if(!z)return;
+  const el=document.getElementById('zone-content');
+  const wrap=document.createElement('div');wrap.className='confirm-overlay show';
+  wrap.innerHTML=`<div class="confirm-box"><div class="confirm-title">Удалить зону «${z.name}»?</div><div class="confirm-sub">Все цели и задачи этой зоны удалятся навсегда.</div><div class="confirm-btns"><button class="btn-cancel" onclick="this.closest('.confirm-overlay').remove()">Отмена</button><button class="btn-danger" onclick="deleteZone('${id}')">Удалить</button></div></div>`;
+  el.prepend(wrap);
+}
+function deleteZone(id){DATA.zones=DATA.zones.filter(z=>z.id!==id);scheduleSave();showScreen('home');}
+function setZoneColor(color){const z=gZ(curZoneId);if(!z)return;z.color=color;scheduleSave();renderZone();}
+function toggleZoneEmojiPicker(){const wrap=document.getElementById('zone-emoji-picker-wrap');if(!wrap)return;if(wrap.innerHTML){wrap.innerHTML='';return;}let html='<div class="zone-emoji-picker">';ZONE_EMOJIS.forEach(e=>{html+=`<button class="zone-ep-btn" onclick="setZoneIcon('${e}')">${e}</button>`;});html+='</div>';wrap.innerHTML=html;}
+function setZoneIcon(emoji){const z=gZ(curZoneId);if(!z)return;z.icon=emoji;scheduleSave();renderZone();}
+
+function renderGoalsTree(z){
+  const tree=document.getElementById('goals-tree');if(!tree)return;tree.innerHTML='';
+  if(!z.goals.length){
+    const empty=document.createElement('div');empty.className='empty-state';empty.style.paddingBottom='16px';
+    empty.innerHTML=`<div class="empty-state-icon">🎯</div><div class="empty-state-text">Нет целей</div><div class="empty-state-sub">Добавь первую цель для этой зоны</div>`;
+    tree.appendChild(empty);
+  }
+  z.goals.forEach(g=>{
+    const block=document.createElement('div');block.className='goal-block';
+    const hd=document.createElement('div');hd.className='goal-hd';
+    hd.innerHTML=`<button class="icon-btn" onclick="pickGoalIcon('${g.id}')"><div class="goal-ico" style="background:${z.color}22">${g.icon}</div></button><input class="goal-name-inp" value="${g.name}" placeholder="Название цели"><span class="goal-pct">${calcGPct(g)}%</span><div class="hd-actions"><button class="icon-btn danger" onclick="deleteGoal('${z.id}','${g.id}')">${SVGS['trash']}</button><span class="chev${g.open?' open':''}" style="cursor:pointer" onclick="toggleGoal('${z.id}','${g.id}')">${SVGS['chevron-down']}</span></div>`;
+    hd.querySelector('.goal-name-inp').addEventListener('input',e=>{g.name=e.target.value;scheduleSave();});
+    block.appendChild(hd);
+    if(g.open){
+      const body=document.createElement('div');body.className='goal-body';
+      g.subs.forEach(s=>{
+        const sgRow=document.createElement('div');sgRow.className='sg-row';
+        sgRow.innerHTML=`<div class="sg-dot" style="background:${z.color}"></div><input class="sg-name-inp" value="${s.name}" placeholder="Подцель"><span class="sg-pct">${calcSPct(s)}%</span><div class="hd-actions"><button class="icon-btn danger" onclick="deleteSub('${z.id}','${g.id}','${s.id}')">${SVGS['trash-sm']}</button><span class="chev${s.open?' open':''}" style="cursor:pointer" onclick="toggleSub('${z.id}','${g.id}','${s.id}')">${SVGS['chevron-down']}</span></div>`;
+        sgRow.querySelector('.sg-name-inp').addEventListener('input',e=>{s.name=e.target.value;scheduleSave();});
+        body.appendChild(sgRow);
+        if(s.open){
+          const tw=document.createElement('div');tw.className='tasks-wrap';
+          s.tasks.forEach(t=>{
+            const tr=document.createElement('div');tr.className='task-row'+(t.done?' done':'');
+            tr.innerHTML=`<div class="tcheck">${t.done?`<span class="ico" style="color:#fff">${SVGS['check-sm']}</span>`:''}</div><input class="task-name-inp" value="${t.text}" placeholder="Задача..."><span class="txp" style="color:${z.color}">+${t.xp}</span><button class="icon-btn danger" onclick="deleteTask('${z.id}','${g.id}','${s.id}','${t.id}')">${SVGS['x']}</button>`;
+            tr.querySelector('.tcheck').addEventListener('click',()=>toggleTask(t,z));
+            tr.querySelector('.task-name-inp').addEventListener('input',e=>{t.text=e.target.value;scheduleSave();});
+            tw.appendChild(tr);
+          });
+          const ar=document.createElement('div');ar.className='add-row';
+          ar.innerHTML=`<span class="ico" style="color:#6b7280">${SVGS['plus']}</span><input class="add-inp" placeholder="Новая задача..."><button class="icon-btn"><span class="ico">${SVGS['circle-plus']}</span></button>`;
+          const af=inp=>{const t2=inp.value.trim();if(!t2)return;s.tasks.push({id:uid(),text:t2,xp:20,done:false});inp.value='';scheduleSave();renderGoalsTree(z);};
+          ar.querySelector('.add-inp').addEventListener('keydown',e=>{if(e.key==='Enter')af(e.target);});
+          ar.querySelector('.icon-btn').addEventListener('click',()=>af(ar.querySelector('.add-inp')));
+          tw.appendChild(ar);body.appendChild(tw);
+        }
+      });
+      const asr=document.createElement('div');asr.className='add-sub-row';
+      asr.innerHTML=`<span class="ico" style="color:#6b7280">${SVGS['plus']}</span><input class="add-sub-inp" placeholder="Новая подцель..."><button class="icon-btn"><span class="ico">${SVGS['circle-plus']}</span></button>`;
+      const asf=inp=>{const t2=inp.value.trim();if(!t2)return;g.subs.push({id:uid(),name:t2,open:false,tasks:[]});inp.value='';scheduleSave();renderGoalsTree(z);};
+      asr.querySelector('.add-sub-inp').addEventListener('keydown',e=>{if(e.key==='Enter')asf(e.target);});
+      asr.querySelector('.icon-btn').addEventListener('click',()=>asf(asr.querySelector('.add-sub-inp')));
+      body.appendChild(asr);block.appendChild(body);
+    }
+    tree.appendChild(block);
+  });
+  const ab=document.createElement('button');ab.className='add-goal-btn';
+  ab.innerHTML=`<span class="ico">${SVGS['plus']}</span> Добавить цель`;
+  ab.onclick=()=>{z.goals.push({id:uid(),name:'',icon:'🎯',open:true,subs:[]});scheduleSave();renderGoalsTree(z);};
+  tree.appendChild(ab);
+}
+function pickGoalIcon(gid){
+  let ex=document.getElementById('icon-picker');if(ex){ex.remove();if(ex.dataset.gid===gid)return;}
+  const pk=document.createElement('div');pk.className='emoji-picker';pk.id='icon-picker';pk.dataset.gid=gid;
+  EMOJIS.forEach(e=>{const b=document.createElement('button');b.className='ep-btn';b.textContent=e;b.onclick=()=>{const z=gZ(curZoneId);const g=z&&z.goals.find(g=>g.id===gid);if(g){g.icon=e;scheduleSave();pk.remove();renderGoalsTree(z);}};pk.appendChild(b);});
+  const tree=document.getElementById('goals-tree'),z=gZ(curZoneId),idx=z.goals.findIndex(g=>g.id===gid),blocks=tree.querySelectorAll('.goal-block');
+  if(blocks[idx])blocks[idx].insertAdjacentElement('afterend',pk);else tree.appendChild(pk);
+}
+function toggleGoal(zid,gid){const z=gZ(zid);z.goals.find(g=>g.id===gid).open^=1;scheduleSave();renderGoalsTree(z);}
+function toggleSub(zid,gid,sid){const z=gZ(zid);z.goals.find(g=>g.id===gid).subs.find(s=>s.id===sid).open^=1;scheduleSave();renderGoalsTree(z);}
+function deleteGoal(zid,gid){const z=gZ(zid);z.goals=z.goals.filter(g=>g.id!==gid);scheduleSave();renderGoalsTree(z);}
+function deleteSub(zid,gid,sid){const z=gZ(zid);const g=z.goals.find(g=>g.id===gid);g.subs=g.subs.filter(s=>s.id!==sid);scheduleSave();renderGoalsTree(z);}
+function deleteTask(zid,gid,sid,tid){const z=gZ(zid);const s=z.goals.find(g=>g.id===gid).subs.find(s=>s.id===sid);const t=s.tasks.find(t=>t.id===tid);if(t&&t.done){z.xp=Math.max(z.xp-t.xp,0);DATA.char.xp=Math.max(DATA.char.xp-t.xp,0);}s.tasks=s.tasks.filter(t=>t.id!==tid);scheduleSave();renderGoalsTree(z);}
+function toggleTask(t,z){
+  t.done=!t.done;
+  if(t.done){z.xp+=t.xp;DATA.char.xp+=t.xp;checkZoneLevelUp(z);checkCharLevelUp();toast('+'+t.xp+' XP!',z.color);}
+  else{z.xp=Math.max(z.xp-t.xp,0);DATA.char.xp=Math.max(DATA.char.xp-t.xp,0);}
+  scheduleSave();renderZone();
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+loadData();
+if(isOnboarded()){
+  checkDailyReset();
+  document.getElementById('bottom-nav').style.display='flex';
+  renderHome();
+}else{
+  renderOnboarding();
+}
+scheduleMidnight();
+initIcons();
+</script>
+</body>
+</html>
